@@ -1,3 +1,8 @@
+import os
+import sys
+import numpy as np
+from numpy import genfromtxt
+
 #hyperParameters
 C = 1.0
 T = 100000
@@ -9,19 +14,20 @@ def read_data(input_file):
 	X = genfromtxt(input_file,delimiter = ',') # list of training example vectors
 	Y = X[:,len(X[0])-1]
 	Y = Y[np.newaxis]
-    Y = np.transpose(Y)
-	X = np.delete(X,len(X[0]-1),1)
+	Y = np.transpose(Y)
+	X = np.delete(X,len(X[0])-1,1)
 	x0 = np.ones((len(X),1))
 	X = np.hstack((x0,X))
 	return X,Y
 
 
-X,Y = read_data('data/train.csv')
-
-
+X,Y = read_data('data/train_sample.csv')
+print X
+print len(Y)
 
 
 def pegasos(X_part,Y_part):
+	global k
 	m = len(X_part)
 	k = min(m,k)
 	w = np.zeros((len(X_part[0]),1))
@@ -42,11 +48,11 @@ def make_dict(Y):
 	pass
 	# make label dictionary
 
-
 def learn_parameters():
+	m = len(X)
 	labels_array = np.unique(Y)
 	labels = len(labels_array)
-	classifier = np.zeros((labels,labels,len(X[0]),1)))
+	classifier = np.zeros((labels,labels,len(X[0]),1))
 	for i in range(labels):
 		for j in range(i+1,labels):
 			X_part = []
@@ -58,10 +64,16 @@ def learn_parameters():
 						Y_part.append(1)
 					else:
 						Y_part.append(-1)
+			print X_part
+			print Y_part
 			w = pegasos(X_part,Y_part)
+			print w
 			classifier[i][j] = w
 			classifier[j][i] = w
 	return classifier
+
+classifier = learn_parameters()
+print classifier
 
 def predict_label(test_X):
 	test_X = np.append([1],test_X)
