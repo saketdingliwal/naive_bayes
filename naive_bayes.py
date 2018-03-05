@@ -37,51 +37,70 @@ def read_data(file_name):
 		print "empty document"
 	return all_text
 
-training_data = read_data("train_sample.txt")
-training_data = getStemmedDocument(training_data)
-training_labels = read_data("train_sample_labels.txt")
-test_data = read_data("test_sample_text.txt")
-test_data = getStemmedDocument(test_data)
-test_labels = read_data("test_sample_labels.txt")
+training_data = read_data("imdb_train_text.txt")
+# training_data = getStemmedDocument(training_data)
+training_labels = read_data("imdb_train_labels.txt")
+test_data = read_data("imdb_test_text.txt")
+# test_data = getStemmedDocument(test_data)
+test_labels = read_data("imdb_test_labels.txt")
 
-def make_dict(training_data,bigram):
+vocab_set = set()
+for document in training_data:
+	words = document.split()
+	for word in words:
+		vocab_set.add(word)
+vocab_dict ={}
+count = 0
+for word in vocab_set:
+	vocab_dict[word] = count
+	count +=1
+
+
+
+
+
+vocab_dict = {}
+bigram_dict = {}
+label_dict = {}
+
+def make_dict(label,bigram):
 	count = 0
-	vocab_dict = {}
-	bigram_dict = {}	
 	for document in training_data:
 		words = document.split()
 		i = 0
 		for word in words:
-			if i > 0:
+			if i > 0 and bigram and not label:
 				bigram_word = words[i-1] + " " + word
 				if not bigram_word in bigram_dict.keys():
 					bigram_dict[bigram_word] = 1
 				else:
 					bigram_dict[bigram_word] +=1
-			if not word in vocab_dict.keys():
-				vocab_dict[word] = count
-				count += 1
+			if label:
+				if not word in label_dict.keys():
+					label_dict[word] = count
+					count += 1
+			else:
+				if not word in vocab_dict.keys():
+					vocab_dict[word] = count
+					count += 1
 			i +=1
-	if bigram:
+	if bigram and not label:
 		for key in bigram_dict.keys():
 			if bigram_dict[key] >= bigram_thresh:
 				vocab_dict[key] = count
 				count += 1
-	return vocab_dict
-	
 
-label_dict = make_dict(training_labels,0)	
+
+make_dict(1,0)
+make_dict(0,0)
 number_classes = len(label_dict)
-# vocab_dict = make_dict(training_data,0)
-vocab_dict = make_dict(training_data,1)
 
 
+naive_matrix = np.ones((len(vocab_dict),number_classes))
+num_words_in_class = np.full((1,number_classes),len(vocab_dict))
+label_freq = np.zeros(number_classes)
 
 def make_matrix(bigram):
-	global vocab_dict,training_data,training_labels,number_classes,label_dict
-	naive_matrix = np.ones((len(vocab_dict),number_classes))
-	num_words_in_class = np.full((1,number_classes),len(vocab_dict))
-	label_freq = np.zeros(number_classes)
 	for i in range(len(training_data)):
 		label = label_dict[training_labels[i].split()[0]]
 		label_freq[label] +=1
@@ -97,14 +116,12 @@ def make_matrix(bigram):
 			naive_matrix[word_index][label] +=1
 			num_words_in_class[0][label] +=1
 			j +=1
-	return (np.log(naive_matrix) - np.log(num_words_in_class)),label_freq
 
 
-naive_matrix,label_freq = make_matrix(1)
+make_matrix(0)
 
 
 def predict(test_document,bigram):
-	global naive_matrix,label_freq,number_classes,vocab_dict
 	max_sum = 0
 	predicted_class = -1
 	for class_ in range(number_classes):
